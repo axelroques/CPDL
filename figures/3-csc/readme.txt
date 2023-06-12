@@ -1,0 +1,1 @@
+csc tests. After a first thousands of iterations to find good first candidates, continuing to run the algorithm iteratively prunes redundant activations thanks to the shrinkage operator.
