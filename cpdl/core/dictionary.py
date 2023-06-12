@@ -1,14 +1,13 @@
 
-from ..functions import sigmoid, sigmoidDerivatives
+from .function import Function
 
 from scipy.linalg import toeplitz
 import numpy as np
-import random
 
 
 class Dictionary:
 
-    def __init__(self, N, K, L) -> None:
+    def __init__(self, N, K, L, function='sigmoid') -> None:
 
         # Length of the signal
         self.N = N
@@ -20,14 +19,14 @@ class Dictionary:
         self.L = L
 
         # Dictionary initialization
-        self.D = self._initDictionary()
+        self.D = self._initDictionary(function)
 
-    def _initDictionary(self):
+    def _initDictionary(self, function):
         """
         Initializes the dictionary with sigmoids whose 
         parameters are randomly assigned.
         """
-        return [Atom(i, self.L) for i in range(self.K)]
+        return [Atom(i, self.L, function) for i in range(self.K)]
 
     def getDictionary(self):
         """
@@ -35,7 +34,7 @@ class Dictionary:
 
         Dictionary shape = L x K.
         """
-        return np.stack([atom.getSigmoid() for atom in self.D]).T
+        return np.stack([atom.getFunction() for atom in self.D]).T
 
     def yieldAtoms(self):
         """
@@ -113,7 +112,7 @@ class Dictionary:
 
 class Atom:
 
-    def __init__(self, id, L) -> None:
+    def __init__(self, id, L, function) -> None:
 
         # Atom id
         self.id = id
@@ -121,7 +120,10 @@ class Atom:
         # Atom length
         self.L = L
 
-        # Arbitrary time vector to construct the sigmoids
+        # Atom parametric function
+        self.F = Function(function)
+
+        # Arbitrary time vector to construct the function
         self.t = np.arange(self.L, dtype=np.float64)
 
         # Atom parameters
@@ -129,41 +131,27 @@ class Atom:
 
     def _initParameters(self):
         """
-        Initialize random parameters.
-        Values are derived from physiological
-        data:
-            - E_0 and E_max = oculomotor range
-            - t_50 = typical half duration of 
-            a saccade
-            - alpha = reasonable values
+        Initialize with random function parameters.
+        Returns an array of parameters.
         """
+        return self.F.init(
+            t=self.t,
+            L=self.L
+        )
 
-        E_0 = random.uniform(-53, 53)
-        E_max = random.uniform(-53, 53)
-        t_50 = self.t[self.L//2]
-        alpha = random.uniform(10, 50)
-
-        return np.array([E_0, E_max, t_50, alpha], dtype=np.float64)
-
-    def getSigmoid(self, bypass_norm=True):
+    def getFunction(self):
         """
-        Return values of a sigmoid function
-        using the atom parameters.
+        Return values of the parametric function
+        given the atom parameters.
         """
-
-        if bypass_norm:
-            return sigmoid(self.t, *self.parameters)
-        else:
-            s = sigmoid(self.t, *self.parameters)
-            norm = np.linalg.norm(s)
-            return s/norm
+        return self.F.get(self.t, *self.parameters)
 
     def getDerivative(self, p):
         """
         Get partial derivative with regards to
         parameter p.
         """
-        return sigmoidDerivatives(self.t, *self.parameters, p)
+        return self.F.derivative(self.t, *self.parameters, p)
 
     def updateParameter(self, i, value):
         """

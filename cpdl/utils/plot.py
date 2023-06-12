@@ -24,7 +24,7 @@ def plot_atoms(X, D, Z):
     ):
 
         # Get atom content
-        sigmoid = atom.getSigmoid(bypass_norm=True)
+        sigmoid = atom.getFunction()
 
         # Iterate over the activation vector
         n_plot = 0
@@ -69,7 +69,7 @@ def plot_reconstructed_signal(X, D, Z):
     for atom, activation in zip(D.yieldAtoms(), Z.yieldActivations()):
 
         # Get atom content
-        sigmoid = atom.getSigmoid(bypass_norm=True)
+        sigmoid = atom.getFunction()
 
         # Iterate over the activation vector
         activated = np.where(activation > 0)[0]
