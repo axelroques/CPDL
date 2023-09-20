@@ -5,10 +5,13 @@ import numpy as np
 
 class ActivationMatrix:
 
-    def __init__(self, N, K, L) -> None:
+    def __init__(self, N, T, K, L) -> None:
+
+        # Number of signals
+        self.N = N
 
         # Signal length
-        self.N = N
+        self.T = T
 
         # Number of atoms
         self.K = K
@@ -21,33 +24,37 @@ class ActivationMatrix:
 
     def _initActivations(self):
         """
-        Initializes the activation matrix with random
-        activations.
+        Initializes the activation matrix.
         """
 
         # Initialize activations with zeros
-        activations = np.zeros((self.K, self.N-self.L+1), dtype=np.float16)
+        activations = np.zeros(
+            (self.N, self.K, self.T-self.L+1),
+            dtype=np.float64
+        )
 
-        # Include random activations
-        for i_atom in range(self.K):
-            rng = np.random.default_rng()
-            rand_indices = rng.integers(
-                low=0, high=self.N-self.L+1,
-                endpoint=False,
-                # size=self.N//self.L
-                size=1
-            )
-            activations[i_atom, rand_indices] = 1
+        # # Include random activations
+        # for i_atom in range(self.K):
+        #     rng = np.random.default_rng()
+        #     rand_indices = rng.integers(
+        #         low=0, high=self.T-self.L+1,
+        #         endpoint=False,
+        #         size=1
+        #     )
+        #     activations[i_atom, rand_indices] = 1
 
-        # return activations
-        return np.ones((self.K, self.N-self.L+1), dtype=np.float16)*0.2
+        return activations
 
-    def getActivations(self):
+    def getActivations(self, n=None):
         """
-        Return activations.
+        Return activations for all, or a single 
+        (the nth) time series.
 
-        Activation vector shape = K x (N-L+1) 
+        Activation vector shape = (N x) K x (T-L+1) 
         """
+
+        if n is not None:
+            return self.Z[n]
         return self.Z
 
     def getToeplitzFormalismCSC(self):
@@ -55,52 +62,57 @@ class ActivationMatrix:
         Return matrix T, i.e. the Toeplitz formalism
         of the activation matrix in the CSC problem.
 
-        Each atom gets converted to a Toeplitz matrix
-        and then each matrix is stacked.
-
-        The resulting matrix is of size (N-L+1)K x 1.
+        Each time series returns a matrix of size 
+        (T-L+1)K x 1.
         """
 
-        # Stack each atom activation vector vetically
-        T = self.getActivations().flatten()
+        # For each time series
+        T_list = []
+        for n in range(self.N):
 
-        return T
+            # Stack each atom activation vector vetically
+            T_list.append(self.getActivations(n).flatten())
+
+        return T_list
 
     def getToeplitzFormalismCDL(self):
         """
         Return matrix T, i.e. the Toeplitz formalism
         of the activation matrix in the CDL problem.
 
-        Each atom gets converted to a Toeplitz matrix
-        and then each matrix is stacked.
-
-        The resulting matrix is of size N x LK.
+        Each time series returns a matrix of size T x LK.
         """
 
-        T = []
-        for activation in self.getActivations():
+        # For each time series
+        T_list = []
+        for n in range(self.N):
 
-            # The Toeplitz matrix is constructed from a
-            # single column, thanks to scipy.toeplitz
-            T_col = np.zeros(self.N)
-            T_col[:self.N-self.L+1] = activation
-            T.append(toeplitz(T_col, np.zeros(self.L)))
+            T = []
+            for activation in self.getActivations(n):
 
-        return np.hstack(T)
+                # The Toeplitz matrix is constructed from a
+                # single column, thanks to scipy.toeplitz
+                T_col = np.zeros(self.T, dtype=np.float64)
+                T_col[:self.T-self.L+1] = activation
+                T.append(toeplitz(T_col, np.zeros(self.L)))
 
-    def updateActivations(self, Z):
+            T_list.append(np.hstack(T))
+
+        return T_list
+
+    def updateActivations(self, Z, n=None):
         """
         Update activation matrix.
         """
 
-        self.Z = Z
-
-        return
+        if n is not None:
+            self.Z[n] = Z
+        else:
+            self.Z = Z
 
     def yieldActivations(self):
         """
         Activations iterator.
         """
-
         for activation in self.Z:
             yield activation

@@ -1,6 +1,9 @@
 
-from .gompertz import gompertz, gompertzDerivatives
-from .sigmoid import initSigmoid, sigmoid, sigmoidDerivatives
-from .bezier import bezier, rational_bezier
-from .catmull_rom import catmull_rom
-from .steffen import steffen
+from .logistic import Logistic
+from .sigmoid import Sigmoid
+
+
+# from .catmull_rom import initCatmullRom, catmull_rom, catmullRomDerivatives
+# from .gompertz import gompertz, gompertzDerivatives
+# from .bezier import bezier, rational_bezier
+# from .steffen import steffen

@@ -1,77 +1,80 @@
 
 import numpy as np
-import random
+from random import uniform
 
 
-def initSigmoid(**kwargs):
-    """
-    Initialize sigmoid parameters.
-    Values are derived from physiological
-    data:
-        - E_0 and E_max = oculomotor range
-        - t_50 = typical half duration of 
-        a saccade
-        - alpha = reasonable values
-    """
+class Sigmoid:
 
-    t = kwargs['t']
-    L = kwargs['L']
+    def __init__(self, L) -> None:
 
-    E_0 = random.uniform(-53, 53)
-    E_max = random.uniform(-53, 53)
-    t_50 = t[L//2]
-    alpha = random.uniform(10, 50)
+        # Construct arbitrary time vector
+        self.t = np.arange(L, dtype=np.float64)
+        self.L = L
 
-    return np.array([E_0, E_max, t_50, alpha], dtype=np.float64)
+    def init(self):
+        """
+        Initialize sigmoid parameters.
+        """
 
+        E_0 = uniform(-53, 53)
+        E_max = uniform(-53, 53)
+        t_50 = self.t[self.L//2]
+        alpha = uniform(10, 50)
 
-def sigmoid(t, E_0, E_max, t_50, alpha):
-    """
-    Sigmoid function according to Hill's equation.
-    """
+        return np.array([E_0, E_max, t_50, alpha], dtype=np.float64)
 
-    # Initialize array
-    s = np.zeros_like(t, dtype=np.float64)
+    def get(self, E_0, E_max, t_50, alpha):
+        """
+        Sigmoid function according to Hill's equation.
+        """
 
-    # Avoid dividing by zero
-    t_50 = max(0.01, t_50)
+        # Shortcut
+        t = self.t
 
-    # Fill array
-    s[:] = E_0 + (E_max-E_0)*np.power(t, alpha, dtype=np.float64) / \
-        (np.power(t_50, alpha, dtype=np.float64) +
-         np.power(t, alpha, dtype=np.float64))
+        # Initialize array
+        s = np.zeros_like(t, dtype=np.float64)
 
-    return s
+        # Avoid dividing by zero
+        t_50 = max(0.01, t_50)
 
+        # Fill array
+        s[:] = E_0 + (E_max-E_0)*np.power(t, alpha, dtype=np.float64) / \
+            (np.power(t_50, alpha, dtype=np.float64) +
+             np.power(t, alpha, dtype=np.float64))
 
-def sigmoidDerivatives(t, E_0, E_max, t_50, alpha, p):
-    """
-    Partial derivatives of the sigmoid function according
-    to the p^th parameter.
-    """
+        return s
 
-    # Avoid dividing by zero
-    t_50 = max(t[1], t_50)
+    def derivative(self, E_0, E_max, t_50, alpha, p):
+        """
+        Partial derivative of the sigmoid function according
+        to the p^th parameter.
+        """
 
-    # df/d(E_0)
-    if p == 0:
-        return 1 - np.power(t, alpha)/(np.power(t_50, alpha) + np.power(t, alpha))
+        # Shortcut
+        t = self.t
 
-    # df/d(E_max)
-    elif p == 1:
-        return np.power(t, alpha)/(np.power(t_50, alpha) + np.power(t, alpha))
+        # Avoid dividing by zero
+        t_50 = max(t[1], t_50)
 
-    # df/d(t_50)
-    elif p == 2:
-        # return -(E_max-E_0)*alpha*np.power(t, alpha)*np.power(t_50, alpha-1) / \
-        #     np.power(np.power(t_50, alpha) + np.power(t, alpha), 2)
-        return np.zeros(len(t))
+        # df/d(E_0)
+        if p == 0:
+            return 1 - np.power(t, alpha)/(np.power(t_50, alpha) + np.power(t, alpha))
 
-    # df/d(alpha)
-    elif p == 3:
-        return (E_max-E_0)*np.power(t_50, alpha)*np.power(t, alpha) * \
-            (np.log2(t, where=(t != 0)) - np.log2(t_50)) / \
-            np.power(np.power(t_50, alpha) + np.power(t, alpha), 2)
+        # df/d(E_max)
+        elif p == 1:
+            return np.power(t, alpha)/(np.power(t_50, alpha) + np.power(t, alpha))
 
-    else:
-        raise RuntimeError('Unexpected parameter for partial derivative.')
+        # df/d(t_50)
+        elif p == 2:
+            # return -(E_max-E_0)*alpha*np.power(t, alpha)*np.power(t_50, alpha-1) / \
+            #     np.power(np.power(t_50, alpha) + np.power(t, alpha), 2)
+            return np.zeros(len(t))
+
+        # df/d(alpha)
+        elif p == 3:
+            return (E_max-E_0)*np.power(t_50, alpha)*np.power(t, alpha) * \
+                (np.log2(t, where=(t != 0)) - np.log2(t_50)) / \
+                np.power(np.power(t_50, alpha) + np.power(t, alpha), 2)
+
+        else:
+            raise RuntimeError('Unexpected parameter for partial derivative.')

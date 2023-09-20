@@ -11,7 +11,7 @@ def steffen(t, P1, P2, P3, P4):
     test = []
     interp = []
 
-    points = [P1, P1, P2, P3, P4, P4]
+    points = [(P1[0]-1, P1[1]), P1, P2, P3, P4, (P4[0]+1, P4[1])]
     for i_points in range(3):
 
         sub_points = points[i_points:i_points+4]
@@ -114,5 +114,10 @@ def interpolate(
     b_i = b(y_p_i, y_p_i_plus_1, s_i, h_i)
     c_i = c(y_p_i)
     d_i = d(y_i)
+
+    print('a_i =', a_i)
+    print('b_i =', b_i)
+    print('c_i =', c_i)
+    print('d_i =', d_i)
 
     return cubic_interpolation_function(t, t_i, a_i, b_i, c_i, d_i)
